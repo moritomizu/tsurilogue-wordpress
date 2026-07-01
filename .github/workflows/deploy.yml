@@ -1,9 +1,6 @@
 name: Deploy TSURILOGUE Media to CORESERVER
 
 on:
-  push:
-    branches:
-      - main
   workflow_dispatch:
 
 jobs:
