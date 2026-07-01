@@ -117,6 +117,131 @@ Current phase foundation:
 - Future AI-related article navigation policy.
 - JIN child theme CSS foundation.
 
+## Headless Media Policy
+
+TSURILOGUE-MEDIA is moving toward a headless CMS architecture.
+
+Target architecture:
+
+```text
+WordPress
+↓ REST API
+Next.js
+↓
+Public media UI
+```
+
+WordPress responsibilities:
+
+- Posts
+- Categories
+- Tags
+- Featured images
+- Editorial content management
+
+Next.js responsibilities:
+
+- `/media` list page
+- `/media/[slug]` post page
+- Category pages
+- Tag pages
+- Search pages
+- SEO metadata
+- Canonical
+- OGP
+- Twitter Card
+- JSON-LD
+- Breadcrumb UI
+- Article CTA
+- Related article UI
+- TSURILOGUE Design System
+
+Important:
+
+- WordPress should be treated as a CMS.
+- JIN should not be used as the long-term public rendering layer.
+- Public design and SEO should be consolidated into Next.js.
+- This WordPress repository provides CMS/API support only. Next.js page implementation must be done in the Next.js application repository.
+
+## Headless REST API
+
+`TSURILOGUE SEO Tools` exposes TSURILOGUE-specific REST endpoints for the future Next.js media frontend.
+
+Base:
+
+```text
+https://tsurilogue.tapiyota.com/wp-json/tsurilogue/v1
+```
+
+Endpoints:
+
+```text
+GET /posts
+GET /posts/{slug}
+GET /categories
+GET /tags
+```
+
+Post list query parameters:
+
+```text
+page=1
+per_page=10
+category=category-slug
+tag=tag-slug
+search=keyword
+```
+
+Example:
+
+```text
+https://tsurilogue.tapiyota.com/wp-json/tsurilogue/v1/posts?page=1&per_page=10
+```
+
+Single post example:
+
+```text
+https://tsurilogue.tapiyota.com/wp-json/tsurilogue/v1/posts/hello-tsurilogue
+```
+
+Normalized post fields:
+
+- `id`
+- `slug`
+- `url`
+- `title.raw`
+- `title.rendered`
+- `excerpt.raw`
+- `excerpt.rendered`
+- `content.raw`
+- `content.rendered`
+- `date`
+- `modified`
+- `featuredImage`
+- `categories`
+- `tags`
+- `seo.title`
+- `seo.description`
+- `seo.canonical`
+- `seo.ogImage`
+
+Pagination fields:
+
+- `page`
+- `perPage`
+- `total`
+- `totalPages`
+- `hasNextPage`
+
+Next.js implementation note:
+
+- Use the WordPress origin only as the API origin.
+- Use `https://www.tsurilogue.com/ja/media` as the public canonical base.
+- Use Next.js `metadata` for title, description, canonical, OGP, Twitter Card, and robots.
+- Use ISR or Next.js cache with a 1-hour revalidation interval.
+- Use `next/image` for WordPress featured images.
+- Keep Article CTA, breadcrumbs, JSON-LD, and related articles as Next.js components.
+
 ## Canonical Policy
 
 Canonical output must be converted from the WordPress origin URL to the public media URL.

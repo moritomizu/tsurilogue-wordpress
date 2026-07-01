@@ -26,6 +26,7 @@ add_filter( 'home_url', 'tsurilogue_seo_tools_convert_frontend_home_url', 20, 4 
 add_filter( 'the_content', 'tsurilogue_seo_tools_append_article_cta', 20 );
 add_action( 'wp_head', 'tsurilogue_seo_tools_maybe_output_structured_data', 20 );
 add_action( 'wp_footer', 'tsurilogue_seo_tools_output_public_url_guard', 99 );
+add_action( 'rest_api_init', 'tsurilogue_seo_tools_register_headless_routes' );
 
 /**
  * Convert WordPress origin URLs to the public TSURILOGUE-MEDIA URL.
@@ -130,6 +131,298 @@ function tsurilogue_seo_tools_output_public_url_guard() {
 		})();
 	</script>
 	<?php
+}
+
+/**
+ * Register TSURILOGUE Headless Media REST endpoints.
+ *
+ * @return void
+ */
+function tsurilogue_seo_tools_register_headless_routes() {
+	register_rest_route(
+		'tsurilogue/v1',
+		'/posts',
+		[
+			'methods'             => 'GET',
+			'callback'            => 'tsurilogue_seo_tools_rest_get_posts',
+			'permission_callback' => '__return_true',
+			'args'                => [
+				'page'     => [
+					'default'           => 1,
+					'sanitize_callback' => 'absint',
+				],
+				'per_page' => [
+					'default'           => 10,
+					'sanitize_callback' => 'absint',
+				],
+				'category' => [
+					'sanitize_callback' => 'sanitize_title',
+				],
+				'tag'      => [
+					'sanitize_callback' => 'sanitize_title',
+				],
+				'search'   => [
+					'sanitize_callback' => 'sanitize_text_field',
+				],
+			],
+		]
+	);
+
+	register_rest_route(
+		'tsurilogue/v1',
+		'/posts/(?P<slug>[a-zA-Z0-9_-]+)',
+		[
+			'methods'             => 'GET',
+			'callback'            => 'tsurilogue_seo_tools_rest_get_post_by_slug',
+			'permission_callback' => '__return_true',
+		]
+	);
+
+	register_rest_route(
+		'tsurilogue/v1',
+		'/categories',
+		[
+			'methods'             => 'GET',
+			'callback'            => 'tsurilogue_seo_tools_rest_get_categories',
+			'permission_callback' => '__return_true',
+		]
+	);
+
+	register_rest_route(
+		'tsurilogue/v1',
+		'/tags',
+		[
+			'methods'             => 'GET',
+			'callback'            => 'tsurilogue_seo_tools_rest_get_tags',
+			'permission_callback' => '__return_true',
+		]
+	);
+}
+
+/**
+ * Return a paginated post collection for Next.js.
+ *
+ * @param WP_REST_Request $request REST request.
+ * @return WP_REST_Response
+ */
+function tsurilogue_seo_tools_rest_get_posts( $request ) {
+	$page     = max( 1, (int) $request->get_param( 'page' ) );
+	$per_page = min( 20, max( 1, (int) $request->get_param( 'per_page' ) ) );
+	$args     = [
+		'post_type'           => 'post',
+		'post_status'         => 'publish',
+		'posts_per_page'      => $per_page,
+		'paged'               => $page,
+		'ignore_sticky_posts' => true,
+	];
+
+	$category = $request->get_param( 'category' );
+	if ( $category ) {
+		$args['category_name'] = $category;
+	}
+
+	$tag = $request->get_param( 'tag' );
+	if ( $tag ) {
+		$args['tag'] = $tag;
+	}
+
+	$search = $request->get_param( 'search' );
+	if ( $search ) {
+		$args['s'] = $search;
+	}
+
+	$query = new WP_Query( $args );
+	$posts = array_map( 'tsurilogue_seo_tools_prepare_headless_post', $query->posts );
+
+	return rest_ensure_response(
+		[
+			'items'      => $posts,
+			'pagination' => [
+				'page'        => $page,
+				'perPage'     => $per_page,
+				'total'       => (int) $query->found_posts,
+				'totalPages'  => (int) $query->max_num_pages,
+				'hasNextPage' => $page < (int) $query->max_num_pages,
+			],
+		]
+	);
+}
+
+/**
+ * Return a single post by slug for Next.js.
+ *
+ * @param WP_REST_Request $request REST request.
+ * @return WP_REST_Response|WP_Error
+ */
+function tsurilogue_seo_tools_rest_get_post_by_slug( $request ) {
+	$slug  = sanitize_title( $request->get_param( 'slug' ) );
+	$posts = get_posts(
+		[
+			'name'           => $slug,
+			'post_type'      => 'post',
+			'post_status'    => 'publish',
+			'posts_per_page' => 1,
+		]
+	);
+
+	if ( empty( $posts ) ) {
+		return new WP_Error( 'tsurilogue_post_not_found', 'Post not found.', [ 'status' => 404 ] );
+	}
+
+	return rest_ensure_response( tsurilogue_seo_tools_prepare_headless_post( $posts[0], true ) );
+}
+
+/**
+ * Return categories for Next.js category pages.
+ *
+ * @return WP_REST_Response
+ */
+function tsurilogue_seo_tools_rest_get_categories() {
+	return rest_ensure_response( tsurilogue_seo_tools_prepare_headless_terms( 'category' ) );
+}
+
+/**
+ * Return tags for Next.js tag pages.
+ *
+ * @return WP_REST_Response
+ */
+function tsurilogue_seo_tools_rest_get_tags() {
+	return rest_ensure_response( tsurilogue_seo_tools_prepare_headless_terms( 'post_tag' ) );
+}
+
+/**
+ * Normalize a WordPress post for the Next.js media frontend.
+ *
+ * @param WP_Post $post Post object.
+ * @param bool    $include_content Whether to include rendered content.
+ * @return array
+ */
+function tsurilogue_seo_tools_prepare_headless_post( $post, $include_content = false ) {
+	$post_id        = $post->ID;
+	$featured_image = tsurilogue_seo_tools_get_headless_featured_image( $post_id );
+	$excerpt        = get_the_excerpt( $post );
+	$permalink      = tsurilogue_seo_tools_convert_public_url( get_permalink( $post_id ) );
+	$data           = [
+		'id'            => $post_id,
+		'slug'          => $post->post_name,
+		'url'           => $permalink,
+		'title'         => [
+			'raw'      => get_the_title( $post_id ),
+			'rendered' => get_the_title( $post_id ),
+		],
+		'excerpt'       => [
+			'raw'      => wp_strip_all_tags( $excerpt ),
+			'rendered' => apply_filters( 'the_excerpt', $excerpt ),
+		],
+		'date'          => get_the_date( DATE_W3C, $post_id ),
+		'modified'      => get_the_modified_date( DATE_W3C, $post_id ),
+		'featuredImage' => $featured_image,
+		'categories'    => tsurilogue_seo_tools_get_headless_post_terms( $post_id, 'category' ),
+		'tags'          => tsurilogue_seo_tools_get_headless_post_terms( $post_id, 'post_tag' ),
+		'seo'           => [
+			'title'       => get_the_title( $post_id ),
+			'description' => wp_trim_words( wp_strip_all_tags( $excerpt ), 80, '' ),
+			'canonical'   => $permalink,
+			'ogImage'     => $featured_image ? $featured_image['url'] : '',
+		],
+	];
+
+	if ( $include_content ) {
+		$data['content'] = [
+			'raw'      => $post->post_content,
+			'rendered' => apply_filters( 'the_content', $post->post_content ),
+		];
+	}
+
+	return $data;
+}
+
+/**
+ * Return normalized taxonomy terms.
+ *
+ * @param string $taxonomy Taxonomy name.
+ * @return array
+ */
+function tsurilogue_seo_tools_prepare_headless_terms( $taxonomy ) {
+	$terms = get_terms(
+		[
+			'taxonomy'   => $taxonomy,
+			'hide_empty' => true,
+		]
+	);
+
+	if ( is_wp_error( $terms ) ) {
+		return [];
+	}
+
+	return array_map(
+		function ( $term ) {
+			return [
+				'id'          => $term->term_id,
+				'slug'        => $term->slug,
+				'name'        => $term->name,
+				'description' => $term->description,
+				'count'       => (int) $term->count,
+				'url'         => tsurilogue_seo_tools_convert_public_url( get_term_link( $term ) ),
+			];
+		},
+		$terms
+	);
+}
+
+/**
+ * Return normalized terms attached to a post.
+ *
+ * @param int    $post_id Post ID.
+ * @param string $taxonomy Taxonomy name.
+ * @return array
+ */
+function tsurilogue_seo_tools_get_headless_post_terms( $post_id, $taxonomy ) {
+	$terms = get_the_terms( $post_id, $taxonomy );
+
+	if ( empty( $terms ) || is_wp_error( $terms ) ) {
+		return [];
+	}
+
+	return array_map(
+		function ( $term ) {
+			return [
+				'id'   => $term->term_id,
+				'slug' => $term->slug,
+				'name' => $term->name,
+				'url'  => tsurilogue_seo_tools_convert_public_url( get_term_link( $term ) ),
+			];
+		},
+		$terms
+	);
+}
+
+/**
+ * Return featured image information for Next.js image rendering.
+ *
+ * @param int $post_id Post ID.
+ * @return array|null
+ */
+function tsurilogue_seo_tools_get_headless_featured_image( $post_id ) {
+	$image_id = get_post_thumbnail_id( $post_id );
+
+	if ( ! $image_id ) {
+		return null;
+	}
+
+	$src = wp_get_attachment_image_src( $image_id, 'full' );
+
+	if ( ! $src ) {
+		return null;
+	}
+
+	return [
+		'id'     => $image_id,
+		'url'    => $src[0],
+		'width'  => (int) $src[1],
+		'height' => (int) $src[2],
+		'alt'    => get_post_meta( $image_id, '_wp_attachment_image_alt', true ),
+	];
 }
 
 /**
