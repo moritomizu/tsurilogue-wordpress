@@ -57,12 +57,6 @@ jobs:
           echo "Upload scope: jin-child theme and TSURILOGUE SEO Tools plugin only."
           echo "Delete sync: disabled."
 
-      - name: Install lftp
-        run: |
-          set -euo pipefail
-          sudo apt-get update
-          sudo apt-get install -y lftp
-
       - name: Deploy themes and plugins
         env:
           CORE_HOST: ${{ secrets.CORE_HOST }}
@@ -77,12 +71,10 @@ jobs:
 
           if [ "${CORE_PORT}" = "22" ]; then
             PROTOCOL="sftp"
-            SFTP_SETTINGS="set sftp:auto-confirm yes"
-            TLS_SETTINGS=""
+            CURL_TLS_ARGS=()
           else
             PROTOCOL="ftp"
-            SFTP_SETTINGS=""
-            TLS_SETTINGS=$'set ftp:ssl-force true\nset ftp:ssl-protect-data true\nset ssl:verify-certificate no'
+            CURL_TLS_ARGS=(--ssl-reqd --insecure)
           fi
 
           echo "Starting deployment to ${CORE_HOST}:${CORE_PORT}"
@@ -94,24 +86,30 @@ jobs:
           echo "Excluded directories are outside this upload scope or explicitly ignored."
           echo "Delete sync is disabled for safety."
 
-          lftp -u "${CORE_USER},${CORE_PASSWORD}" -p "${CORE_PORT}" "${PROTOCOL}://${CORE_HOST}" <<EOF
-          set cmd:fail-exit yes
-          set dns:order inet
-          set ftp:passive-mode yes
-          set net:max-retries 1
-          set net:timeout 15
-          set net:reconnect-interval-base 3
-          ${SFTP_SETTINGS}
-          ${TLS_SETTINGS}
-          mirror --reverse --verbose=1 --only-newer --parallel=2 --no-perms \
-            --exclude-glob ".DS_Store" \
-            --exclude-glob "*/.DS_Store" \
-            "wp-content/themes/jin-child" "${REMOTE_BASE}/themes/jin-child"
-          mirror --reverse --verbose=1 --only-newer --parallel=2 --no-perms \
-            --exclude-glob ".DS_Store" \
-            --exclude-glob "*/.DS_Store" \
-            "wp-content/plugins/tsurilogue-seo-tools" "${REMOTE_BASE}/plugins/tsurilogue-seo-tools"
-          bye
-          EOF
+          upload_file() {
+            local file="$1"
+            local remote_path="${REMOTE_BASE}/${file#wp-content/}"
+            local remote_url="${PROTOCOL}://${CORE_HOST}//${remote_path#/}"
+
+            echo "Uploading ${file} -> ${remote_path}"
+
+            curl --fail --show-error --silent \
+              --connect-timeout 20 \
+              --max-time 90 \
+              --retry 1 \
+              --ftp-create-dirs \
+              --user "${CORE_USER}:${CORE_PASSWORD}" \
+              --upload-file "${file}" \
+              "${CURL_TLS_ARGS[@]}" \
+              "${remote_url}"
+          }
+
+          while IFS= read -r file; do
+            upload_file "${file}"
+          done < <(find wp-content/themes/jin-child wp-content/plugins/tsurilogue-seo-tools \
+            -type f \
+            ! -name ".DS_Store" \
+            ! -path "*/.git/*" \
+            | sort)
 
           echo "Deployment finished successfully."
