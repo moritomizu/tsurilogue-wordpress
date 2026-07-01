@@ -3,7 +3,7 @@
 add_action( 'wp_enqueue_scripts', 'theme_enqueue_styles' );
 function theme_enqueue_styles() {
 	wp_enqueue_style( 'parent-style', get_template_directory_uri() . '/style.css' );
-	wp_enqueue_style( 'jin-child-style', get_stylesheet_uri(), [ 'parent-style' ], wp_get_theme()->get( 'Version' ) );
+	wp_enqueue_style( 'jin-child-style', get_stylesheet_uri(), [ 'parent-style' ], filemtime( get_stylesheet_directory() . '/style.css' ) );
 }
 
 add_action( 'wp_footer', 'tsurilogue_media_service_navigation', 5 );
@@ -40,17 +40,74 @@ function tsurilogue_media_service_navigation() {
 			'icon'  => '<path d="M4 19V5M4 19h16"></path><path d="M8 16v-5M12 16V8M16 16v-7"></path>',
 		],
 	];
+	$header_links = [
+		[
+			'url'   => $base_url,
+			'label' => 'サービスTOP',
+		],
+		[
+			'url'   => $base_url . '/media',
+			'label' => 'メディア',
+		],
+		[
+			'url'   => 'https://www.tsurilogue.com/how-to-use-app',
+			'label' => 'アプリのように使う方法',
+		],
+		[
+			'url'   => 'https://www.tsurilogue.com/feedback',
+			'label' => 'ご意見・ご感想',
+		],
+		[
+			'url'   => 'https://www.tsurilogue.com/login',
+			'label' => 'ログイン',
+		],
+	];
+	$footer_links = [
+		[
+			'url'   => 'https://www.tsurilogue.com/how-to-use-app',
+			'label' => 'アプリのように使う方法',
+		],
+		[
+			'url'   => 'https://www.tsurilogue.com/feedback',
+			'label' => 'ご意見・ご感想',
+		],
+		[
+			'url'   => 'https://www.tsurilogue.com/terms',
+			'label' => '利用規約',
+		],
+		[
+			'url'   => 'https://www.tsurilogue.com/privacy',
+			'label' => 'プライバシーポリシー',
+		],
+		[
+			'url'   => 'https://www.tsurilogue.com/login',
+			'label' => 'お問い合わせ',
+		],
+	];
 	?>
 	<header class="tsurilogue-service-header" role="banner">
 		<a class="tsurilogue-service-header__brand" href="<?php echo esc_url( $base_url ); ?>" aria-label="TSURILOGUE">
 			<img src="https://www.tsurilogue.com/icons/trlg-logo.png" alt="TSURILOGUE">
 		</a>
 		<nav class="tsurilogue-service-header__nav" aria-label="TSURILOGUE navigation">
-			<a href="<?php echo esc_url( $base_url . '/media' ); ?>">メディア</a>
-			<a href="<?php echo esc_url( $base_url . '/plans' ); ?>">プラン</a>
-			<a href="<?php echo esc_url( $base_url . '/post' ); ?>">投稿</a>
+			<?php foreach ( $header_links as $link ) : ?>
+				<a href="<?php echo esc_url( $link['url'] ); ?>"><?php echo esc_html( $link['label'] ); ?></a>
+			<?php endforeach; ?>
 		</nav>
 	</header>
+	<footer class="tsurilogue-service-footer" role="contentinfo">
+		<div class="tsurilogue-service-footer__inner">
+			<a class="tsurilogue-service-footer__brand" href="<?php echo esc_url( $base_url ); ?>" aria-label="TSURILOGUE">
+				<img src="https://www.tsurilogue.com/icons/trlg-logo.png" alt="TSURILOGUE">
+			</a>
+			<nav class="tsurilogue-service-footer__nav" aria-label="TSURILOGUE footer navigation">
+				<?php foreach ( $footer_links as $link ) : ?>
+					<a href="<?php echo esc_url( $link['url'] ); ?>"><?php echo esc_html( $link['label'] ); ?></a>
+				<?php endforeach; ?>
+			</nav>
+			<p class="tsurilogue-service-footer__credit">created by TaPiYoTa</p>
+		</div>
+	</footer>
 	<nav class="tsurilogue-service-tabbar" aria-label="TSURILOGUE app navigation">
 		<div class="tsurilogue-service-tabbar__inner">
 			<?php foreach ( $items as $item ) : ?>
