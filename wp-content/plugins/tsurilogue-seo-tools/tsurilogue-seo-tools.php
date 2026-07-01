@@ -21,6 +21,8 @@ add_filter( 'post_link', 'tsurilogue_seo_tools_convert_public_url', 20 );
 add_filter( 'page_link', 'tsurilogue_seo_tools_convert_public_url', 20 );
 add_filter( 'post_type_link', 'tsurilogue_seo_tools_convert_public_url', 20 );
 add_filter( 'term_link', 'tsurilogue_seo_tools_convert_public_url', 20 );
+add_filter( 'the_permalink', 'tsurilogue_seo_tools_convert_public_url', 20 );
+add_filter( 'home_url', 'tsurilogue_seo_tools_convert_frontend_home_url', 20, 4 );
 add_filter( 'the_content', 'tsurilogue_seo_tools_append_article_cta', 20 );
 add_action( 'wp_head', 'tsurilogue_seo_tools_maybe_output_structured_data', 20 );
 
@@ -46,6 +48,31 @@ function tsurilogue_seo_tools_convert_public_url( $url ) {
 	$path = '/' . ltrim( (string) $path, '/' );
 
 	return trailingslashit( $public ) . ltrim( $path, '/' );
+}
+
+/**
+ * Convert frontend home URLs while leaving WordPress system paths untouched.
+ *
+ * @param string      $url         Full home URL.
+ * @param string      $path        Path relative to the site root.
+ * @param string|null $orig_scheme Requested scheme.
+ * @param int|null    $blog_id     Blog ID.
+ * @return string
+ */
+function tsurilogue_seo_tools_convert_frontend_home_url( $url, $path = '', $orig_scheme = null, $blog_id = null ) {
+	unset( $orig_scheme, $blog_id );
+
+	if ( is_admin() ) {
+		return $url;
+	}
+
+	$path = '/' . ltrim( (string) $path, '/' );
+
+	if ( preg_match( '#^/(wp-admin|wp-login\.php|wp-json|xmlrpc\.php|wp-content|wp-includes)(/|$)#', $path ) ) {
+		return $url;
+	}
+
+	return tsurilogue_seo_tools_convert_public_url( $url );
 }
 
 /**

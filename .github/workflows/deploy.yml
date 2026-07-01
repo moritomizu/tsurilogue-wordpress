@@ -10,7 +10,7 @@ jobs:
   deploy:
     name: Upload wp-content customizations
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 8
 
     steps:
       - name: Checkout repository
@@ -96,16 +96,18 @@ jobs:
 
           lftp -u "${CORE_USER},${CORE_PASSWORD}" -p "${CORE_PORT}" "${PROTOCOL}://${CORE_HOST}" <<EOF
           set cmd:fail-exit yes
-          set net:max-retries 2
-          set net:timeout 30
-          set net:reconnect-interval-base 5
+          set dns:order inet
+          set ftp:passive-mode yes
+          set net:max-retries 1
+          set net:timeout 15
+          set net:reconnect-interval-base 3
           ${SFTP_SETTINGS}
           ${TLS_SETTINGS}
-          mirror --reverse --verbose --no-perms \
+          mirror --reverse --verbose=1 --only-newer --parallel=2 --no-perms \
             --exclude-glob ".DS_Store" \
             --exclude-glob "*/.DS_Store" \
             "wp-content/themes/jin-child" "${REMOTE_BASE}/themes/jin-child"
-          mirror --reverse --verbose --no-perms \
+          mirror --reverse --verbose=1 --only-newer --parallel=2 --no-perms \
             --exclude-glob ".DS_Store" \
             --exclude-glob "*/.DS_Store" \
             "wp-content/plugins/tsurilogue-seo-tools" "${REMOTE_BASE}/plugins/tsurilogue-seo-tools"
