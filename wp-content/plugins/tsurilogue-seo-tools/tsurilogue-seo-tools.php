@@ -40,6 +40,10 @@ function tsurilogue_seo_tools_convert_public_url( $url ) {
 	$origin = untrailingslashit( TSURILOGUE_SEO_TOOLS_ORIGIN_URL );
 	$public = untrailingslashit( TSURILOGUE_SEO_TOOLS_PUBLIC_URL );
 
+	if ( 0 === strpos( $url, $public ) ) {
+		return tsurilogue_seo_tools_normalize_public_url( $url );
+	}
+
 	if ( 0 !== strpos( $url, $origin ) ) {
 		return $url;
 	}
@@ -47,7 +51,19 @@ function tsurilogue_seo_tools_convert_public_url( $url ) {
 	$path = substr( $url, strlen( $origin ) );
 	$path = '/' . ltrim( (string) $path, '/' );
 
-	return trailingslashit( $public ) . ltrim( $path, '/' );
+	return tsurilogue_seo_tools_normalize_public_url( trailingslashit( $public ) . ltrim( $path, '/' ) );
+}
+
+/**
+ * Normalize accidental duplicate slashes immediately below the public media URL.
+ *
+ * @param string $url Public URL.
+ * @return string
+ */
+function tsurilogue_seo_tools_normalize_public_url( $url ) {
+	$public = trailingslashit( untrailingslashit( TSURILOGUE_SEO_TOOLS_PUBLIC_URL ) );
+
+	return str_replace( $public . '/', $public, $url );
 }
 
 /**
