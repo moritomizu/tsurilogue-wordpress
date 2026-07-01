@@ -224,11 +224,31 @@ https://tsurilogue.tapiyota.com/wp-json/tsurilogue/v1
 Endpoints:
 
 ```text
+GET /status
 GET /posts
 GET /posts/{slug}
 GET /categories
 GET /tags
 ```
+
+Deployment/status check:
+
+```text
+https://tsurilogue.tapiyota.com/wp-json/tsurilogue/v1/status
+```
+
+Expected:
+
+```json
+{
+  "ok": true,
+  "plugin": "TSURILOGUE SEO Tools",
+  "version": "0.2.0",
+  "namespace": "tsurilogue/v1"
+}
+```
+
+If `/status` returns `rest_no_route`, the latest plugin file is not loaded on production. Confirm that `wp-content/plugins/tsurilogue-seo-tools/tsurilogue-seo-tools.php` has been uploaded and that `TSURILOGUE SEO Tools` is activated in WordPress admin.
 
 Post list query parameters:
 

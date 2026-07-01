@@ -2,14 +2,14 @@
 /**
  * Plugin Name: TSURILOGUE SEO Tools
  * Description: TSURILOGUE-MEDIA専用のSEO補助機能を管理します。
- * Version: 0.1.0
+ * Version: 0.2.0
  * Author: TSURILOGUE
  * Text Domain: tsurilogue-seo-tools
  */
 
 defined( 'ABSPATH' ) || exit;
 
-const TSURILOGUE_SEO_TOOLS_VERSION    = '0.1.0';
+const TSURILOGUE_SEO_TOOLS_VERSION    = '0.2.0';
 const TSURILOGUE_SEO_TOOLS_ORIGIN_URL = 'https://tsurilogue.tapiyota.com';
 const TSURILOGUE_SEO_TOOLS_PUBLIC_URL = 'https://www.tsurilogue.com/ja/media';
 const TSURILOGUE_SEO_TOOLS_CTA_URL    = 'https://tsurilogue.com';
@@ -141,6 +141,16 @@ function tsurilogue_seo_tools_output_public_url_guard() {
 function tsurilogue_seo_tools_register_headless_routes() {
 	register_rest_route(
 		'tsurilogue/v1',
+		'/status',
+		[
+			'methods'             => 'GET',
+			'callback'            => 'tsurilogue_seo_tools_rest_get_status',
+			'permission_callback' => '__return_true',
+		]
+	);
+
+	register_rest_route(
+		'tsurilogue/v1',
 		'/posts',
 		[
 			'methods'             => 'GET',
@@ -200,6 +210,29 @@ function tsurilogue_seo_tools_register_headless_routes() {
 }
 
 /**
+ * Return route/plugin status for deployment verification.
+ *
+ * @return WP_REST_Response
+ */
+function tsurilogue_seo_tools_rest_get_status() {
+	return rest_ensure_response(
+		[
+			'ok'        => true,
+			'plugin'    => 'TSURILOGUE SEO Tools',
+			'version'   => TSURILOGUE_SEO_TOOLS_VERSION,
+			'namespace' => 'tsurilogue/v1',
+			'routes'    => [
+				'/status',
+				'/posts',
+				'/posts/{slug}',
+				'/categories',
+				'/tags',
+			],
+		]
+	);
+}
+
+/**
  * Return a paginated post collection for Next.js.
  *
  * @param WP_REST_Request $request REST request.
@@ -232,7 +265,12 @@ function tsurilogue_seo_tools_rest_get_posts( $request ) {
 	}
 
 	$query = new WP_Query( $args );
-	$posts = array_map( 'tsurilogue_seo_tools_prepare_headless_post', $query->posts );
+	$posts = array_map(
+		function ( $post ) {
+			return tsurilogue_seo_tools_prepare_headless_post( $post, true );
+		},
+		$query->posts
+	);
 
 	return rest_ensure_response(
 		[
