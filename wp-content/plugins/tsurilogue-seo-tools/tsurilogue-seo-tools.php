@@ -25,6 +25,7 @@ add_filter( 'the_permalink', 'tsurilogue_seo_tools_convert_public_url', 20 );
 add_filter( 'home_url', 'tsurilogue_seo_tools_convert_frontend_home_url', 20, 4 );
 add_filter( 'the_content', 'tsurilogue_seo_tools_append_article_cta', 20 );
 add_action( 'wp_head', 'tsurilogue_seo_tools_maybe_output_structured_data', 20 );
+add_action( 'wp_footer', 'tsurilogue_seo_tools_output_public_url_guard', 99 );
 
 /**
  * Convert WordPress origin URLs to the public TSURILOGUE-MEDIA URL.
@@ -93,6 +94,42 @@ function tsurilogue_seo_tools_convert_frontend_home_url( $url, $path = '', $orig
 	}
 
 	return tsurilogue_seo_tools_convert_public_url( $url );
+}
+
+/**
+ * Add a frontend guard for links generated outside standard WordPress filters.
+ *
+ * @return void
+ */
+function tsurilogue_seo_tools_output_public_url_guard() {
+	if ( is_admin() ) {
+		return;
+	}
+
+	?>
+	<script>
+		(function () {
+			var origin = <?php echo wp_json_encode( untrailingslashit( TSURILOGUE_SEO_TOOLS_ORIGIN_URL ) ); ?>;
+			var publicUrl = <?php echo wp_json_encode( untrailingslashit( TSURILOGUE_SEO_TOOLS_PUBLIC_URL ) ); ?>;
+
+			function convertUrl(url) {
+				if (!url || url.indexOf(origin) !== 0) {
+					return url;
+				}
+
+				return publicUrl + "/" + url.slice(origin.length).replace(/^\/+/, "");
+			}
+
+			document.querySelectorAll("a[href]").forEach(function (anchor) {
+				anchor.href = convertUrl(anchor.href);
+			});
+
+			document.querySelectorAll("form[action]").forEach(function (form) {
+				form.action = convertUrl(form.action);
+			});
+		})();
+	</script>
+	<?php
 }
 
 /**

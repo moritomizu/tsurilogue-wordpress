@@ -264,6 +264,29 @@ Current CSS foundation:
 - `.tsurilogue-cta` component styles.
 - `.tsurilogue-button` base button styles.
 - Responsive article CTA layout.
+- TSURILOGUE-style header, footer, bottom app navigation, article typography, and heading styles.
+
+## Shared Service Chrome Policy
+
+The media header, footer, and bottom app navigation are rendered from the JIN child theme.
+
+Current implementation:
+
+- Uses local fallback configuration in `wp-content/themes/jin-child/functions.php`.
+- Keeps the JIN parent theme unmodified.
+- Hides the default JIN footer and outputs the TSURILOGUE footer from the child theme.
+- Can connect to a future service-side JSON configuration endpoint through the `tsurilogue_media_service_chrome_config_url` filter.
+
+Important:
+
+- WordPress cannot automatically know service-side navigation changes unless the TSURILOGUE service exposes a shared navigation/config endpoint.
+- Until that service endpoint exists, the WordPress child theme uses its local fallback menu.
+- When the service endpoint is added, configure the filter to return that endpoint URL and keep the JSON shape compatible with `base_url`, `logo_url`, `header_links`, `footer_links`, and `tab_items`.
+
+Fallback behavior:
+
+- If the remote endpoint is not configured, unavailable, or returns invalid JSON, WordPress uses the local fallback menu.
+- Remote configuration is cached with WordPress transients to avoid slowing down page rendering.
 
 ## Directory Structure
 
@@ -342,7 +365,13 @@ Planned future work:
 
 ## GitHub Actions Deployment
 
-TSURILOGUE-MEDIA uses GitHub Actions to deploy WordPress customization files to CORESERVER after changes are pushed to the `main` branch.
+TSURILOGUE-MEDIA keeps a GitHub Actions deployment workflow as a manual fallback, but the normal production reflection method is manual FTP upload with FileZilla or another FTP/SFTP client.
+
+Reason:
+
+- CORESERVER FTP/FTPS behavior can be unstable from GitHub Actions.
+- Manual FTP upload is currently faster and easier to confirm.
+- GitHub remains the source of code history, while production reflection is performed manually.
 
 Workflow:
 
@@ -358,7 +387,6 @@ Deploy TSURILOGUE Media to CORESERVER
 
 Deployment trigger:
 
-- Push to `main`
 - Manual run from the GitHub Actions screen with `workflow_dispatch`
 
 Deployment scope:
@@ -460,14 +488,45 @@ Future note:
 - Before enabling delete sync, confirm that GitHub is the complete source of truth for `wp-content/themes/jin-child/` and `wp-content/plugins/tsurilogue-seo-tools/`.
 - Never enable delete sync for `uploads`, cache, backup directories, or WordPress core.
 
-### Deployment Verification
+### Manual FTP Reflection
 
-After committing and pushing changes:
+Normal production reflection should be done manually.
 
-1. Commit changes in GitHub Desktop.
-2. Push to `main`.
-3. Open the GitHub Actions tab.
-4. Confirm the `Deploy TSURILOGUE Media to CORESERVER` workflow succeeds.
+Upload only the edited project files:
+
+```text
+wp-content/themes/jin-child/
+wp-content/plugins/tsurilogue-seo-tools/
+```
+
+Do not upload:
+
+```text
+wp-content/uploads/
+wp-content/cache/
+wp-content/upgrade/
+wp-config.php
+WordPress core
+wp-content/themes/jin/
+third-party plugin source files
+```
+
+Recommended workflow:
+
+1. Edit files with Codex.
+2. Commit and push changes to GitHub.
+3. Open FileZilla or another FTP/SFTP client.
+4. Upload only changed files from `wp-content/themes/jin-child/` and `wp-content/plugins/tsurilogue-seo-tools/`.
+5. Confirm the WordPress admin dashboard and public media pages still work.
+
+### Manual GitHub Actions Verification
+
+If the manual GitHub Actions workflow is used:
+
+1. Open the GitHub Actions tab.
+2. Select `Deploy TSURILOGUE Media to CORESERVER`.
+3. Click `Run workflow`.
+4. Confirm the workflow succeeds.
 5. Confirm plugins and themes are reflected in the WordPress admin dashboard.
 6. Open `https://www.tsurilogue.com/ja/media` and confirm the site displays normally.
 7. Open a post page and confirm canonical and CTA output in the HTML source.
