@@ -331,7 +331,31 @@ Configuration:
 
 Do not write secrets directly in this repository. Configure the endpoint and secret through WordPress filters from a server-side private file or environment-specific plugin.
 
-Example:
+Recommended production setup:
+
+1. Copy this repository file:
+
+```text
+wp-content/mu-plugins/tsurilogue-revalidate-config.example.php
+```
+
+2. Rename it on the production server:
+
+```text
+wp-content/mu-plugins/tsurilogue-revalidate-config.php
+```
+
+3. Replace `REPLACE_WITH_NEXTJS_REVALIDATE_SECRET` with the secret configured in the Next.js app.
+
+The production filename is ignored by Git:
+
+```text
+wp-content/mu-plugins/tsurilogue-revalidate-config.php
+```
+
+Do not commit or push the production secret file.
+
+Example filter implementation:
 
 ```php
 add_filter(
@@ -377,6 +401,23 @@ X-TSURILOGUE-Revalidate-Secret: YOUR_SECRET_VALUE
 ```
 
 Next.js side should validate the secret, then revalidate all received `paths`.
+
+Verification:
+
+```text
+https://tsurilogue.tapiyota.com/wp-json/tsurilogue/v1/status
+```
+
+Expected after production configuration:
+
+```json
+{
+  "revalidate": {
+    "configured": true,
+    "hasSecret": true
+  }
+}
+```
 
 ## Canonical Policy
 

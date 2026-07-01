@@ -222,6 +222,10 @@ function tsurilogue_seo_tools_rest_get_status() {
 			'plugin'    => 'TSURILOGUE SEO Tools',
 			'version'   => TSURILOGUE_SEO_TOOLS_VERSION,
 			'namespace' => 'tsurilogue/v1',
+			'revalidate' => [
+				'configured' => (bool) tsurilogue_seo_tools_get_revalidate_endpoint(),
+				'hasSecret'  => (bool) tsurilogue_seo_tools_get_revalidate_secret(),
+			],
 			'routes'    => [
 				'/status',
 				'/posts',
