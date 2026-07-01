@@ -269,6 +269,9 @@ Current CSS foundation:
 
 ```text
 .
+├── .github/
+│   └── workflows/
+│       └── deploy.yml
 ├── README.md
 └── wp-content/
     ├── languages/
@@ -336,6 +339,145 @@ Planned future work:
 - Premium navigation and conversion tracking.
 - Conditional asset loading.
 - Frontend performance improvements.
+
+## GitHub Actions Deployment
+
+TSURILOGUE-MEDIA uses GitHub Actions to deploy WordPress customization files to CORESERVER after changes are pushed to the `main` branch.
+
+Workflow:
+
+```text
+.github/workflows/deploy.yml
+```
+
+Workflow name:
+
+```text
+Deploy TSURILOGUE Media to CORESERVER
+```
+
+Deployment trigger:
+
+- Push to `main`
+- Manual run from the GitHub Actions screen with `workflow_dispatch`
+
+Deployment scope:
+
+```text
+wp-content/themes/
+wp-content/plugins/
+```
+
+Excluded from deployment:
+
+```text
+wp-content/uploads/
+wp-content/cache/
+wp-content/upgrade/
+wp-content/backup*/
+wp-content/backups/
+wp-content/ai1wm-backups/
+wp-content/wflogs/
+wp-config.php
+WordPress core
+```
+
+The workflow uploads only `themes` and `plugins` to the remote `wp-content` directory. It does not deploy WordPress core, `uploads`, cache directories, backup directories, or `wp-config.php`.
+
+### Connection Method
+
+The workflow uses `lftp` and supports:
+
+- SFTP when `CORE_PORT` is `22`
+- FTP over TLS when `CORE_PORT` is not `22`, usually `21`
+
+Authentication values must be stored in GitHub Secrets. Do not write server credentials directly in repository files.
+
+### GitHub Secrets
+
+Set repository secrets from:
+
+```text
+GitHub repository
+Settings
+→ Secrets and variables
+→ Actions
+→ New repository secret
+```
+
+Required secrets:
+
+- `CORE_HOST`: CORESERVER host name.
+- `CORE_USER`: FTP/SFTP user name.
+- `CORE_PASSWORD`: FTP/SFTP password.
+- `CORE_PORT`: usually `22` for SFTP or `21` for FTP over TLS.
+- `CORE_REMOTE_PATH`: remote `wp-content` directory.
+
+Example:
+
+```text
+CORE_REMOTE_PATH=/virtual/ユーザー名/public_html/tsurilogue.tapiyota.com/wp-content/
+```
+
+The actual remote path depends on the CORESERVER account and site configuration.
+
+### How To Confirm CORE_REMOTE_PATH
+
+Confirm the correct remote path before enabling deployment.
+
+Recommended checks:
+
+1. Open the CORESERVER control panel.
+2. Confirm the document root for `tsurilogue.tapiyota.com`.
+3. Connect with an FTP/SFTP client using the same account as `CORE_USER`.
+4. Navigate to the WordPress install directory.
+5. Open `wp-content`.
+6. Copy the absolute server path to that `wp-content` directory.
+7. Set that path as `CORE_REMOTE_PATH`.
+
+Expected shape:
+
+```text
+/virtual/ユーザー名/public_html/tsurilogue.tapiyota.com/wp-content/
+```
+
+Do not set `CORE_REMOTE_PATH` to the WordPress root. It must point to the remote `wp-content` directory.
+
+### Delete Sync Policy
+
+Delete sync is disabled in Ver1.0.
+
+Reason:
+
+- To avoid accidentally deleting files that exist only on the production server.
+- To keep the first deployment version conservative.
+- To protect server-side plugin, theme, cache, and generated files during initial operation.
+
+Future note:
+
+- After deployment behavior is stable, delete sync can be considered.
+- Before enabling delete sync, confirm that GitHub is the complete source of truth for all deployed theme and plugin files.
+- Never enable delete sync for `uploads`, cache, backup directories, or WordPress core.
+
+### Deployment Verification
+
+After committing and pushing changes:
+
+1. Commit changes in GitHub Desktop.
+2. Push to `main`.
+3. Open the GitHub Actions tab.
+4. Confirm the `Deploy TSURILOGUE Media to CORESERVER` workflow succeeds.
+5. Confirm plugins and themes are reflected in the WordPress admin dashboard.
+6. Open `https://tsurilogue.com/media` and confirm the site displays normally.
+7. Open a post page and confirm canonical and CTA output in the HTML source.
+
+If deployment fails:
+
+- Open the failed workflow run.
+- Check `Validate deployment secrets` for missing or invalid secret values.
+- Check `Install lftp` for package installation errors.
+- Check `Deploy themes and plugins` for connection, authentication, path, or permission errors.
+- Confirm `CORE_REMOTE_PATH` points to the remote `wp-content` directory.
 
 ## Verification Steps
 

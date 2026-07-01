@@ -1,0 +1,128 @@
+name: Deploy TSURILOGUE Media to CORESERVER
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Upload wp-content customizations
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate deployment secrets
+        env:
+          CORE_HOST: ${{ secrets.CORE_HOST }}
+          CORE_USER: ${{ secrets.CORE_USER }}
+          CORE_PASSWORD: ${{ secrets.CORE_PASSWORD }}
+          CORE_PORT: ${{ secrets.CORE_PORT }}
+          CORE_REMOTE_PATH: ${{ secrets.CORE_REMOTE_PATH }}
+        run: |
+          set -euo pipefail
+
+          missing=0
+          for name in CORE_HOST CORE_USER CORE_PASSWORD CORE_PORT CORE_REMOTE_PATH; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error::Missing GitHub Secret: ${name}"
+              missing=1
+            fi
+          done
+
+          if [ "${missing}" -ne 0 ]; then
+            exit 1
+          fi
+
+          if ! [[ "${CORE_PORT}" =~ ^[0-9]+$ ]]; then
+            echo "::error::CORE_PORT must be numeric. Use 22 for SFTP or 21 for FTP over TLS."
+            exit 1
+          fi
+
+          if [ ! -d "wp-content/themes" ]; then
+            echo "::error::wp-content/themes does not exist in this repository."
+            exit 1
+          fi
+
+          if [ ! -d "wp-content/plugins" ]; then
+            echo "::error::wp-content/plugins does not exist in this repository."
+            exit 1
+          fi
+
+          echo "Deployment secrets are configured."
+          echo "Upload scope: wp-content/themes and wp-content/plugins only."
+          echo "Delete sync: disabled."
+
+      - name: Install lftp
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y lftp
+
+      - name: Deploy themes and plugins
+        env:
+          CORE_HOST: ${{ secrets.CORE_HOST }}
+          CORE_USER: ${{ secrets.CORE_USER }}
+          CORE_PASSWORD: ${{ secrets.CORE_PASSWORD }}
+          CORE_PORT: ${{ secrets.CORE_PORT }}
+          CORE_REMOTE_PATH: ${{ secrets.CORE_REMOTE_PATH }}
+        run: |
+          set -euo pipefail
+
+          REMOTE_BASE="${CORE_REMOTE_PATH%/}"
+
+          if [ "${CORE_PORT}" = "22" ]; then
+            PROTOCOL="sftp"
+            TLS_SETTINGS=""
+          else
+            PROTOCOL="ftp"
+            TLS_SETTINGS=$'set ftp:ssl-force true\nset ftp:ssl-protect-data true\nset ssl:verify-certificate no'
+          fi
+
+          echo "Starting deployment to ${CORE_HOST}:${CORE_PORT}"
+          echo "Protocol: ${PROTOCOL}"
+          echo "Remote wp-content path: ${REMOTE_BASE}"
+          echo "Uploading directories:"
+          echo "- wp-content/themes/ -> ${REMOTE_BASE}/themes/"
+          echo "- wp-content/plugins/ -> ${REMOTE_BASE}/plugins/"
+          echo "Excluded directories are outside this upload scope or explicitly ignored."
+          echo "Delete sync is disabled for safety."
+
+          lftp -u "${CORE_USER},${CORE_PASSWORD}" -p "${CORE_PORT}" "${PROTOCOL}://${CORE_HOST}" <<EOF
+          set cmd:fail-exit yes
+          set net:max-retries 2
+          set net:timeout 30
+          set net:reconnect-interval-base 5
+          ${TLS_SETTINGS}
+          mkdir -p "${REMOTE_BASE}/themes"
+          mkdir -p "${REMOTE_BASE}/plugins"
+          mirror --reverse --verbose --no-perms \
+            --exclude-glob ".DS_Store" \
+            --exclude-glob "*/.DS_Store" \
+            --exclude-glob "wp-content/uploads/**" \
+            --exclude-glob "wp-content/cache/**" \
+            --exclude-glob "wp-content/upgrade/**" \
+            --exclude-glob "wp-content/backup*/**" \
+            --exclude-glob "wp-content/backups/**" \
+            --exclude-glob "wp-content/ai1wm-backups/**" \
+            --exclude-glob "wp-content/wflogs/**" \
+            "wp-content/themes" "${REMOTE_BASE}/themes"
+          mirror --reverse --verbose --no-perms \
+            --exclude-glob ".DS_Store" \
+            --exclude-glob "*/.DS_Store" \
+            --exclude-glob "wp-content/uploads/**" \
+            --exclude-glob "wp-content/cache/**" \
+            --exclude-glob "wp-content/upgrade/**" \
+            --exclude-glob "wp-content/backup*/**" \
+            --exclude-glob "wp-content/backups/**" \
+            --exclude-glob "wp-content/ai1wm-backups/**" \
+            --exclude-glob "wp-content/wflogs/**" \
+            "wp-content/plugins" "${REMOTE_BASE}/plugins"
+          bye
+          EOF
+
+          echo "Deployment finished successfully."
