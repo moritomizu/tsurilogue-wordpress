@@ -164,7 +164,7 @@ Current implementation:
 - `ssp_output_canonical` converts SEO SIMPLE PACK canonical URLs.
 - `ssp_output_og_url` converts SEO SIMPLE PACK OGP URLs so OGP does not point to the origin.
 - `get_canonical_url` converts WordPress standard canonical URLs if they are used.
-- JIN custom canonical meta value `jin_canonical` is converted on frontend output when present.
+- JIN parent theme files are not edited. JIN-specific canonical handling should be added only after confirming it does not conflict with WordPress metadata filters.
 
 ## CTA Policy
 

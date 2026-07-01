@@ -17,7 +17,6 @@ const TSURILOGUE_SEO_TOOLS_CTA_URL    = 'https://tsurilogue.com';
 add_filter( 'ssp_output_canonical', 'tsurilogue_seo_tools_convert_public_url', 20 );
 add_filter( 'ssp_output_og_url', 'tsurilogue_seo_tools_convert_public_url', 20 );
 add_filter( 'get_canonical_url', 'tsurilogue_seo_tools_convert_public_url', 20 );
-add_filter( 'get_post_metadata', 'tsurilogue_seo_tools_filter_jin_canonical_meta', 20, 4 );
 add_filter( 'the_content', 'tsurilogue_seo_tools_append_article_cta', 20 );
 add_action( 'wp_head', 'tsurilogue_seo_tools_maybe_output_structured_data', 20 );
 
@@ -43,35 +42,6 @@ function tsurilogue_seo_tools_convert_public_url( $url ) {
 	$path = '/' . ltrim( (string) $path, '/' );
 
 	return trailingslashit( $public ) . ltrim( $path, '/' );
-}
-
-/**
- * Convert JIN's custom canonical field without editing the parent theme.
- *
- * @param mixed  $value     Existing short-circuit value.
- * @param int    $object_id Post ID.
- * @param string $meta_key  Meta key.
- * @param bool   $single    Whether a single value is requested.
- * @return mixed
- */
-function tsurilogue_seo_tools_filter_jin_canonical_meta( $value, $object_id, $meta_key, $single ) {
-	if ( is_admin() || 'jin_canonical' !== $meta_key || ! $single ) {
-		return $value;
-	}
-
-	if ( function_exists( 'get_metadata_raw' ) ) {
-		$raw = get_metadata_raw( 'post', $object_id, $meta_key, true );
-	} else {
-		remove_filter( 'get_post_metadata', 'tsurilogue_seo_tools_filter_jin_canonical_meta', 20 );
-		$raw = get_post_meta( $object_id, $meta_key, true );
-		add_filter( 'get_post_metadata', 'tsurilogue_seo_tools_filter_jin_canonical_meta', 20, 4 );
-	}
-
-	if ( '' === $raw || null === $raw ) {
-		return $value;
-	}
-
-	return tsurilogue_seo_tools_convert_public_url( $raw );
 }
 
 /**
