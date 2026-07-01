@@ -88,6 +88,10 @@ function tsurilogue_seo_tools_convert_frontend_home_url( $url, $path = '', $orig
 		return $url;
 	}
 
+	if ( '/' === $path ) {
+		return untrailingslashit( TSURILOGUE_SEO_TOOLS_PUBLIC_URL );
+	}
+
 	return tsurilogue_seo_tools_convert_public_url( $url );
 }
 
