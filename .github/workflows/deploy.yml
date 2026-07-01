@@ -57,12 +57,6 @@ jobs:
           echo "Upload scope: jin-child theme and TSURILOGUE SEO Tools plugin only."
           echo "Delete sync: disabled."
 
-      - name: Install lftp
-        run: |
-          set -euo pipefail
-          sudo apt-get update
-          sudo apt-get install -y lftp
-
       - name: Deploy themes and plugins
         env:
           CORE_HOST: ${{ secrets.CORE_HOST }}
@@ -77,12 +71,10 @@ jobs:
 
           if [ "${CORE_PORT}" = "22" ]; then
             PROTOCOL="sftp"
-            SFTP_SETTINGS="set sftp:auto-confirm yes"
-            TLS_SETTINGS=""
+            CURL_TLS_ARGS=()
           else
             PROTOCOL="ftp"
-            SFTP_SETTINGS=""
-            TLS_SETTINGS=$'set ftp:ssl-force true\nset ftp:ssl-protect-data true\nset ssl:verify-certificate no'
+            CURL_TLS_ARGS=(--ssl-reqd --insecure)
           fi
 
           echo "Starting deployment to ${CORE_HOST}:${CORE_PORT}"
@@ -94,31 +86,30 @@ jobs:
           echo "Excluded directories are outside this upload scope or explicitly ignored."
           echo "Delete sync is disabled for safety."
 
-          DEPLOY_SCRIPT="$(mktemp)"
+          upload_file() {
+            local file="$1"
+            local remote_path="${REMOTE_BASE}/${file#wp-content/}"
+            local remote_url="${PROTOCOL}://${CORE_HOST}//${remote_path#/}"
 
-          {
-            echo "set cmd:fail-exit yes"
-            echo "set dns:order inet"
-            echo "set ftp:passive-mode yes"
-            echo "set net:max-retries 1"
-            echo "set net:timeout 15"
-            echo "set net:reconnect-interval-base 3"
-            printf '%s\n' "${SFTP_SETTINGS}"
-            printf '%s\n' "${TLS_SETTINGS}"
+            echo "Uploading ${file} -> ${remote_path}"
 
-            while IFS= read -r file; do
-              remote_dir="${REMOTE_BASE}/$(dirname "${file#wp-content/}")"
-              echo "put -O \"${remote_dir}\" \"${file}\""
-            done < <(find wp-content/themes/jin-child wp-content/plugins/tsurilogue-seo-tools \
-              -type f \
-              ! -name ".DS_Store" \
-              ! -path "*/.git/*" \
-              | sort)
+            curl --fail --show-error --silent \
+              --connect-timeout 20 \
+              --max-time 90 \
+              --retry 1 \
+              --ftp-create-dirs \
+              --user "${CORE_USER}:${CORE_PASSWORD}" \
+              --upload-file "${file}" \
+              "${CURL_TLS_ARGS[@]}" \
+              "${remote_url}"
+          }
 
-            echo "bye"
-          } > "${DEPLOY_SCRIPT}"
-
-          sed -n '/^put /p' "${DEPLOY_SCRIPT}"
-          timeout 180 lftp -u "${CORE_USER},${CORE_PASSWORD}" -p "${CORE_PORT}" "${PROTOCOL}://${CORE_HOST}" -f "${DEPLOY_SCRIPT}"
+          while IFS= read -r file; do
+            upload_file "${file}"
+          done < <(find wp-content/themes/jin-child wp-content/plugins/tsurilogue-seo-tools \
+            -type f \
+            ! -name ".DS_Store" \
+            ! -path "*/.git/*" \
+            | sort)
 
           echo "Deployment finished successfully."
