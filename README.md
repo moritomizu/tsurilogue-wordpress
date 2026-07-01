@@ -243,7 +243,7 @@ Expected:
 {
   "ok": true,
   "plugin": "TSURILOGUE SEO Tools",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "namespace": "tsurilogue/v1"
 }
 ```
@@ -309,6 +309,74 @@ Next.js implementation note:
 - Use ISR or Next.js cache with a 1-hour revalidation interval.
 - Use `next/image` for WordPress featured images.
 - Keep Article CTA, breadcrumbs, JSON-LD, and related articles as Next.js components.
+
+## Next.js Revalidation Hook
+
+`TSURILOGUE SEO Tools` can notify Next.js when a published WordPress post is saved.
+
+Trigger:
+
+```text
+save_post_post
+```
+
+Default behavior:
+
+- Disabled until a revalidation endpoint is configured.
+- Ignores revisions and autosaves.
+- Runs only for published posts.
+- Sends a non-blocking `POST` request to the configured Next.js endpoint.
+
+Configuration:
+
+Do not write secrets directly in this repository. Configure the endpoint and secret through WordPress filters from a server-side private file or environment-specific plugin.
+
+Example:
+
+```php
+add_filter(
+	'tsurilogue_seo_tools_revalidate_endpoint',
+	function () {
+		return 'https://www.tsurilogue.com/api/revalidate';
+	}
+);
+
+add_filter(
+	'tsurilogue_seo_tools_revalidate_secret',
+	function () {
+		return 'YOUR_SECRET_VALUE';
+	}
+);
+```
+
+Payload:
+
+```json
+{
+  "event": "wordpress.post.updated",
+  "postId": 72,
+  "slug": "what-is-catch-log",
+  "updatedAt": "2026-07-01T12:00:02+09:00",
+  "paths": [
+    "/ja/media",
+    "/ja/media/what-is-catch-log",
+    "/ja/media/category/category-slug",
+    "/ja/media/tag/tag-slug"
+  ],
+  "categories": [],
+  "tags": []
+}
+```
+
+Headers:
+
+```text
+Content-Type: application/json
+Authorization: Bearer YOUR_SECRET_VALUE
+X-TSURILOGUE-Revalidate-Secret: YOUR_SECRET_VALUE
+```
+
+Next.js side should validate the secret, then revalidate all received `paths`.
 
 ## Canonical Policy
 

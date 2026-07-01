@@ -2,14 +2,14 @@
 /**
  * Plugin Name: TSURILOGUE SEO Tools
  * Description: TSURILOGUE-MEDIA専用のSEO補助機能を管理します。
- * Version: 0.2.0
+ * Version: 0.3.0
  * Author: TSURILOGUE
  * Text Domain: tsurilogue-seo-tools
  */
 
 defined( 'ABSPATH' ) || exit;
 
-const TSURILOGUE_SEO_TOOLS_VERSION    = '0.2.0';
+const TSURILOGUE_SEO_TOOLS_VERSION    = '0.3.0';
 const TSURILOGUE_SEO_TOOLS_ORIGIN_URL = 'https://tsurilogue.tapiyota.com';
 const TSURILOGUE_SEO_TOOLS_PUBLIC_URL = 'https://www.tsurilogue.com/ja/media';
 const TSURILOGUE_SEO_TOOLS_CTA_URL    = 'https://tsurilogue.com';
@@ -27,6 +27,7 @@ add_filter( 'the_content', 'tsurilogue_seo_tools_append_article_cta', 20 );
 add_action( 'wp_head', 'tsurilogue_seo_tools_maybe_output_structured_data', 20 );
 add_action( 'wp_footer', 'tsurilogue_seo_tools_output_public_url_guard', 99 );
 add_action( 'rest_api_init', 'tsurilogue_seo_tools_register_headless_routes' );
+add_action( 'save_post_post', 'tsurilogue_seo_tools_revalidate_nextjs_post', 20, 3 );
 
 /**
  * Convert WordPress origin URLs to the public TSURILOGUE-MEDIA URL.
@@ -326,6 +327,115 @@ function tsurilogue_seo_tools_rest_get_categories() {
  */
 function tsurilogue_seo_tools_rest_get_tags() {
 	return rest_ensure_response( tsurilogue_seo_tools_prepare_headless_terms( 'post_tag' ) );
+}
+
+/**
+ * Trigger Next.js on-demand revalidation when a published post changes.
+ *
+ * @param int     $post_id Post ID.
+ * @param WP_Post $post Post object.
+ * @param bool    $update Whether this is an existing post being updated.
+ * @return void
+ */
+function tsurilogue_seo_tools_revalidate_nextjs_post( $post_id, $post, $update ) {
+	unset( $update );
+
+	if ( wp_is_post_revision( $post_id ) || wp_is_post_autosave( $post_id ) ) {
+		return;
+	}
+
+	if ( ! $post instanceof WP_Post || 'publish' !== $post->post_status ) {
+		return;
+	}
+
+	$endpoint = tsurilogue_seo_tools_get_revalidate_endpoint();
+
+	if ( ! $endpoint ) {
+		return;
+	}
+
+	$payload = tsurilogue_seo_tools_get_revalidate_payload( $post_id, $post );
+	$args    = [
+		'timeout'  => 5,
+		'blocking' => false,
+		'headers'  => [
+			'Content-Type' => 'application/json',
+		],
+		'body'     => wp_json_encode( $payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
+	];
+	$secret  = tsurilogue_seo_tools_get_revalidate_secret();
+
+	if ( $secret ) {
+		$args['headers']['Authorization'] = 'Bearer ' . $secret;
+		$args['headers']['X-TSURILOGUE-Revalidate-Secret'] = $secret;
+	}
+
+	$response = wp_remote_post( $endpoint, $args );
+
+	if ( is_wp_error( $response ) ) {
+		error_log( 'TSURILOGUE SEO Tools revalidate failed: ' . $response->get_error_message() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+	}
+}
+
+/**
+ * Get Next.js revalidation endpoint.
+ *
+ * @return string
+ */
+function tsurilogue_seo_tools_get_revalidate_endpoint() {
+	return esc_url_raw( (string) apply_filters( 'tsurilogue_seo_tools_revalidate_endpoint', '' ) );
+}
+
+/**
+ * Get Next.js revalidation secret.
+ *
+ * @return string
+ */
+function tsurilogue_seo_tools_get_revalidate_secret() {
+	return (string) apply_filters( 'tsurilogue_seo_tools_revalidate_secret', '' );
+}
+
+/**
+ * Build the revalidation payload sent to Next.js.
+ *
+ * @param int     $post_id Post ID.
+ * @param WP_Post $post Post object.
+ * @return array
+ */
+function tsurilogue_seo_tools_get_revalidate_payload( $post_id, $post ) {
+	$category_paths = [];
+	$tag_paths      = [];
+
+	foreach ( tsurilogue_seo_tools_get_headless_post_terms( $post_id, 'category' ) as $category ) {
+		$category_paths[] = '/ja/media/category/' . $category['slug'];
+	}
+
+	foreach ( tsurilogue_seo_tools_get_headless_post_terms( $post_id, 'post_tag' ) as $tag ) {
+		$tag_paths[] = '/ja/media/tag/' . $tag['slug'];
+	}
+
+	$paths = array_values(
+		array_unique(
+			array_merge(
+				[
+					'/ja/media',
+					'/ja/media/' . $post->post_name,
+				],
+				$category_paths,
+				$tag_paths
+			)
+		)
+	);
+
+	return [
+		'event'      => 'wordpress.post.updated',
+		'postId'     => $post_id,
+		'slug'       => $post->post_name,
+		'updatedAt'  => current_time( DATE_W3C ),
+		'paths'      => $paths,
+		'categories' => tsurilogue_seo_tools_get_headless_post_terms( $post_id, 'category' ),
+		'tags'       => tsurilogue_seo_tools_get_headless_post_terms( $post_id, 'post_tag' ),
+	];
 }
 
 /**
