@@ -4,3 +4,107 @@ Theme Name: jin-child
 Author: CrossPiece
 Version: 1.00
 */
+
+:root {
+	--tsurilogue-blue: #0077b6;
+	--tsurilogue-deep-blue: #023e8a;
+	--tsurilogue-aqua: #00b4d8;
+	--tsurilogue-green: #2a9d8f;
+	--tsurilogue-ink: #1f2933;
+	--tsurilogue-muted: #5f6f7a;
+	--tsurilogue-border: #d8e4ea;
+	--tsurilogue-surface: #f4fbfd;
+	--tsurilogue-white: #ffffff;
+}
+
+.tsurilogue-button {
+	align-items: center;
+	background: var(--tsurilogue-blue);
+	border: 1px solid var(--tsurilogue-blue);
+	border-radius: 6px;
+	box-shadow: 0 8px 18px rgba(0, 119, 182, 0.18);
+	color: var(--tsurilogue-white);
+	display: inline-flex;
+	font-weight: 700;
+	justify-content: center;
+	line-height: 1.4;
+	min-height: 46px;
+	padding: 12px 22px;
+	text-align: center;
+	text-decoration: none;
+	transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.tsurilogue-button:hover,
+.tsurilogue-button:focus {
+	background: var(--tsurilogue-deep-blue);
+	border-color: var(--tsurilogue-deep-blue);
+	box-shadow: 0 10px 22px rgba(2, 62, 138, 0.22);
+	color: var(--tsurilogue-white);
+	text-decoration: none;
+	transform: translateY(-1px);
+}
+
+.tsurilogue-cta {
+	background: var(--tsurilogue-surface);
+	border: 1px solid var(--tsurilogue-border);
+	border-radius: 8px;
+	margin: 40px 0 24px;
+	padding: 28px;
+}
+
+.tsurilogue-article-cta {
+	position: relative;
+}
+
+.tsurilogue-article-cta::before {
+	background: linear-gradient(90deg, var(--tsurilogue-blue), var(--tsurilogue-green));
+	border-radius: 8px 8px 0 0;
+	content: "";
+	height: 4px;
+	left: -1px;
+	position: absolute;
+	right: -1px;
+	top: -1px;
+}
+
+.tsurilogue-cta__body {
+	display: grid;
+	gap: 14px;
+}
+
+.tsurilogue-cta__title {
+	color: var(--tsurilogue-ink);
+	font-size: 1.35rem;
+	font-weight: 700;
+	line-height: 1.5;
+	margin: 0;
+}
+
+.tsurilogue-cta__text {
+	color: var(--tsurilogue-muted);
+	font-size: 1rem;
+	line-height: 1.9;
+	margin: 0;
+}
+
+.tsurilogue-cta__button {
+	justify-self: start;
+	margin-top: 4px;
+}
+
+@media (max-width: 640px) {
+	.tsurilogue-cta {
+		margin: 32px 0 20px;
+		padding: 22px 18px;
+	}
+
+	.tsurilogue-cta__title {
+		font-size: 1.15rem;
+	}
+
+	.tsurilogue-cta__button {
+		justify-self: stretch;
+		width: 100%;
+	}
+}
