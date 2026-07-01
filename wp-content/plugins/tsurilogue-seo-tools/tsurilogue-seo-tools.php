@@ -225,6 +225,7 @@ function tsurilogue_seo_tools_rest_get_status() {
 			'revalidate' => [
 				'configured' => (bool) tsurilogue_seo_tools_get_revalidate_endpoint(),
 				'hasSecret'  => (bool) tsurilogue_seo_tools_get_revalidate_secret(),
+				'lastResult' => tsurilogue_seo_tools_get_last_revalidate_result(),
 			],
 			'routes'    => [
 				'/status',
@@ -361,7 +362,7 @@ function tsurilogue_seo_tools_revalidate_nextjs_post( $post_id, $post, $update )
 	$payload = tsurilogue_seo_tools_get_revalidate_payload( $post_id, $post );
 	$args    = [
 		'timeout'  => 5,
-		'blocking' => false,
+		'blocking' => (bool) apply_filters( 'tsurilogue_seo_tools_revalidate_blocking', true ),
 		'headers'  => [
 			'Content-Type' => 'application/json',
 		],
@@ -374,10 +375,50 @@ function tsurilogue_seo_tools_revalidate_nextjs_post( $post_id, $post, $update )
 		$args['headers']['X-TSURILOGUE-Revalidate-Secret'] = $secret;
 	}
 
+	tsurilogue_seo_tools_update_last_revalidate_result(
+		[
+			'attemptedAt' => current_time( DATE_W3C ),
+			'postId'      => $post_id,
+			'slug'        => $post->post_name,
+			'paths'       => $payload['paths'],
+			'success'     => null,
+			'statusCode'  => null,
+			'error'       => '',
+		]
+	);
+
 	$response = wp_remote_post( $endpoint, $args );
 
 	if ( is_wp_error( $response ) ) {
+		tsurilogue_seo_tools_update_last_revalidate_result(
+			[
+				'attemptedAt' => current_time( DATE_W3C ),
+				'postId'      => $post_id,
+				'slug'        => $post->post_name,
+				'paths'       => $payload['paths'],
+				'success'     => false,
+				'statusCode'  => null,
+				'error'       => $response->get_error_message(),
+			]
+		);
 		error_log( 'TSURILOGUE SEO Tools revalidate failed: ' . $response->get_error_message() ); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+		return;
+	}
+
+	if ( true === $args['blocking'] ) {
+		$status_code = (int) wp_remote_retrieve_response_code( $response );
+
+		tsurilogue_seo_tools_update_last_revalidate_result(
+			[
+				'attemptedAt' => current_time( DATE_W3C ),
+				'postId'      => $post_id,
+				'slug'        => $post->post_name,
+				'paths'       => $payload['paths'],
+				'success'     => $status_code >= 200 && $status_code < 300,
+				'statusCode'  => $status_code,
+				'error'       => '',
+			]
+		);
 	}
 }
 
@@ -397,6 +438,27 @@ function tsurilogue_seo_tools_get_revalidate_endpoint() {
  */
 function tsurilogue_seo_tools_get_revalidate_secret() {
 	return (string) apply_filters( 'tsurilogue_seo_tools_revalidate_secret', '' );
+}
+
+/**
+ * Store the latest revalidation result for production diagnostics.
+ *
+ * @param array $result Result data.
+ * @return void
+ */
+function tsurilogue_seo_tools_update_last_revalidate_result( $result ) {
+	update_option( 'tsurilogue_seo_tools_last_revalidate', $result, false );
+}
+
+/**
+ * Get the latest revalidation result.
+ *
+ * @return array|null
+ */
+function tsurilogue_seo_tools_get_last_revalidate_result() {
+	$result = get_option( 'tsurilogue_seo_tools_last_revalidate' );
+
+	return is_array( $result ) ? $result : null;
 }
 
 /**
