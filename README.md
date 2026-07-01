@@ -364,8 +364,8 @@ Deployment trigger:
 Deployment scope:
 
 ```text
-wp-content/themes/
-wp-content/plugins/
+wp-content/themes/jin-child/
+wp-content/plugins/tsurilogue-seo-tools/
 ```
 
 Excluded from deployment:
@@ -382,7 +382,7 @@ wp-config.php
 WordPress core
 ```
 
-The workflow uploads only `themes` and `plugins` to the remote `wp-content` directory. It does not deploy WordPress core, `uploads`, cache directories, backup directories, or `wp-config.php`.
+The workflow uploads only the JIN child theme and the TSURILOGUE SEO Tools plugin to the remote `wp-content` directory. It does not deploy WordPress core, the JIN parent theme, third-party plugins, `uploads`, cache directories, backup directories, or `wp-config.php`.
 
 ### Connection Method
 
@@ -452,11 +452,12 @@ Reason:
 - To avoid accidentally deleting files that exist only on the production server.
 - To keep the first deployment version conservative.
 - To protect server-side plugin, theme, cache, and generated files during initial operation.
+- To keep deployment fast while frontend design changes are being iterated.
 
 Future note:
 
 - After deployment behavior is stable, delete sync can be considered.
-- Before enabling delete sync, confirm that GitHub is the complete source of truth for all deployed theme and plugin files.
+- Before enabling delete sync, confirm that GitHub is the complete source of truth for `wp-content/themes/jin-child/` and `wp-content/plugins/tsurilogue-seo-tools/`.
 - Never enable delete sync for `uploads`, cache, backup directories, or WordPress core.
 
 ### Deployment Verification

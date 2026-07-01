@@ -43,18 +43,18 @@ jobs:
             exit 1
           fi
 
-          if [ ! -d "wp-content/themes" ]; then
-            echo "::error::wp-content/themes does not exist in this repository."
+          if [ ! -d "wp-content/themes/jin-child" ]; then
+            echo "::error::wp-content/themes/jin-child does not exist in this repository."
             exit 1
           fi
 
-          if [ ! -d "wp-content/plugins" ]; then
-            echo "::error::wp-content/plugins does not exist in this repository."
+          if [ ! -d "wp-content/plugins/tsurilogue-seo-tools" ]; then
+            echo "::error::wp-content/plugins/tsurilogue-seo-tools does not exist in this repository."
             exit 1
           fi
 
           echo "Deployment secrets are configured."
-          echo "Upload scope: wp-content/themes and wp-content/plugins only."
+          echo "Upload scope: jin-child theme and TSURILOGUE SEO Tools plugin only."
           echo "Delete sync: disabled."
 
       - name: Install lftp
@@ -89,8 +89,8 @@ jobs:
           echo "Protocol: ${PROTOCOL}"
           echo "Remote wp-content path: ${REMOTE_BASE}"
           echo "Uploading directories:"
-          echo "- wp-content/themes/ -> ${REMOTE_BASE}/themes/"
-          echo "- wp-content/plugins/ -> ${REMOTE_BASE}/plugins/"
+          echo "- wp-content/themes/jin-child/ -> ${REMOTE_BASE}/themes/jin-child/"
+          echo "- wp-content/plugins/tsurilogue-seo-tools/ -> ${REMOTE_BASE}/plugins/tsurilogue-seo-tools/"
           echo "Excluded directories are outside this upload scope or explicitly ignored."
           echo "Delete sync is disabled for safety."
 
@@ -104,25 +104,11 @@ jobs:
           mirror --reverse --verbose --no-perms \
             --exclude-glob ".DS_Store" \
             --exclude-glob "*/.DS_Store" \
-            --exclude-glob "wp-content/uploads/**" \
-            --exclude-glob "wp-content/cache/**" \
-            --exclude-glob "wp-content/upgrade/**" \
-            --exclude-glob "wp-content/backup*/**" \
-            --exclude-glob "wp-content/backups/**" \
-            --exclude-glob "wp-content/ai1wm-backups/**" \
-            --exclude-glob "wp-content/wflogs/**" \
-            "wp-content/themes" "${REMOTE_BASE}/themes"
+            "wp-content/themes/jin-child" "${REMOTE_BASE}/themes/jin-child"
           mirror --reverse --verbose --no-perms \
             --exclude-glob ".DS_Store" \
             --exclude-glob "*/.DS_Store" \
-            --exclude-glob "wp-content/uploads/**" \
-            --exclude-glob "wp-content/cache/**" \
-            --exclude-glob "wp-content/upgrade/**" \
-            --exclude-glob "wp-content/backup*/**" \
-            --exclude-glob "wp-content/backups/**" \
-            --exclude-glob "wp-content/ai1wm-backups/**" \
-            --exclude-glob "wp-content/wflogs/**" \
-            "wp-content/plugins" "${REMOTE_BASE}/plugins"
+            "wp-content/plugins/tsurilogue-seo-tools" "${REMOTE_BASE}/plugins/tsurilogue-seo-tools"
           bye
           EOF
 
