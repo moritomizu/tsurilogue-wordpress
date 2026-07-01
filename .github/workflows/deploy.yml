@@ -77,9 +77,11 @@ jobs:
 
           if [ "${CORE_PORT}" = "22" ]; then
             PROTOCOL="sftp"
+            SFTP_SETTINGS="set sftp:auto-confirm yes"
             TLS_SETTINGS=""
           else
             PROTOCOL="ftp"
+            SFTP_SETTINGS=""
             TLS_SETTINGS=$'set ftp:ssl-force true\nset ftp:ssl-protect-data true\nset ssl:verify-certificate no'
           fi
 
@@ -97,6 +99,7 @@ jobs:
           set net:max-retries 2
           set net:timeout 30
           set net:reconnect-interval-base 5
+          ${SFTP_SETTINGS}
           ${TLS_SETTINGS}
           mkdir -p "${REMOTE_BASE}/themes"
           mkdir -p "${REMOTE_BASE}/plugins"

@@ -478,6 +478,7 @@ If deployment fails:
 - Check `Install lftp` for package installation errors.
 - Check `Deploy themes and plugins` for connection, authentication, path, or permission errors.
 - Confirm `CORE_REMOTE_PATH` points to the remote `wp-content` directory.
+- If the log says `Host key verification failed`, the workflow could not confirm the SFTP server host key. Ver1.0 sets `sftp:auto-confirm yes` for SFTP deployments so GitHub Actions can accept the host key in its temporary runner environment.
 
 ## Verification Steps
 
