@@ -380,6 +380,7 @@ Payload:
   "event": "wordpress.post.updated",
   "postId": 72,
   "slug": "what-is-catch-log",
+  "path": "/ja/media/what-is-catch-log",
   "updatedAt": "2026-07-01T12:00:02+09:00",
   "paths": [
     "/ja/media",
@@ -403,7 +404,7 @@ X-Revalidate-Secret: YOUR_SECRET_VALUE
 
 The same secret is also included in the JSON body as `secret` for compatibility with common Next.js revalidation handlers.
 
-Next.js side should validate the secret from one agreed source, then revalidate all received `paths`.
+Next.js side should validate the secret from one agreed source, then revalidate `path` and all received `paths`.
 
 Verification:
 
@@ -432,12 +433,15 @@ After saving a published post, `lastResult` should be updated:
       "attemptedAt": "2026-07-01T12:00:02+09:00",
       "postId": 72,
       "slug": "what-is-catch-log",
+      "path": "/ja/media/what-is-catch-log",
       "paths": [
         "/ja/media",
         "/ja/media/what-is-catch-log"
       ],
       "success": true,
       "statusCode": 200,
+      "responseMessage": "OK",
+      "responseBody": "{\"revalidated\":true}",
       "error": ""
     }
   }
@@ -449,6 +453,7 @@ Troubleshooting:
 - If `lastResult` is `null`, the WordPress save hook has not fired yet, the post was not published, or the updated file is not deployed.
 - If `success` is `false` and `statusCode` is `401` or `403`, the WordPress secret does not match the Next.js secret, or Next.js is checking a different header/body field than WordPress sends.
 - If `success` is `false` and `statusCode` is `404`, confirm the Next.js revalidation endpoint URL.
+- If `success` is `false` and `statusCode` is `500`, the request reached Next.js but `/api/revalidate` failed internally. Check `responseMessage`, `responseBody`, and the Next.js server or Vercel function logs.
 - If `success` is `true` but the page is still stale, check whether the Next.js endpoint revalidates every path in the received `paths` array.
 
 ## Canonical Policy

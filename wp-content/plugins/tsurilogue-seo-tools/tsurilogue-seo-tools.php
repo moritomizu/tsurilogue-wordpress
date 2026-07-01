@@ -383,9 +383,12 @@ function tsurilogue_seo_tools_revalidate_nextjs_post( $post_id, $post, $update )
 			'attemptedAt' => current_time( DATE_W3C ),
 			'postId'      => $post_id,
 			'slug'        => $post->post_name,
+			'path'        => $payload['path'],
 			'paths'       => $payload['paths'],
 			'success'     => null,
 			'statusCode'  => null,
+			'responseMessage' => '',
+			'responseBody'    => '',
 			'error'       => '',
 		]
 	);
@@ -398,9 +401,12 @@ function tsurilogue_seo_tools_revalidate_nextjs_post( $post_id, $post, $update )
 				'attemptedAt' => current_time( DATE_W3C ),
 				'postId'      => $post_id,
 				'slug'        => $post->post_name,
+				'path'        => $payload['path'],
 				'paths'       => $payload['paths'],
 				'success'     => false,
 				'statusCode'  => null,
+				'responseMessage' => '',
+				'responseBody'    => '',
 				'error'       => $response->get_error_message(),
 			]
 		);
@@ -409,16 +415,23 @@ function tsurilogue_seo_tools_revalidate_nextjs_post( $post_id, $post, $update )
 	}
 
 	if ( true === $args['blocking'] ) {
-		$status_code = (int) wp_remote_retrieve_response_code( $response );
+		$status_code      = (int) wp_remote_retrieve_response_code( $response );
+		$response_message = (string) wp_remote_retrieve_response_message( $response );
+		$response_body    = (string) wp_remote_retrieve_body( $response );
+		$response_body    = wp_strip_all_tags( $response_body );
+		$response_body    = substr( $response_body, 0, 500 );
 
 		tsurilogue_seo_tools_update_last_revalidate_result(
 			[
 				'attemptedAt' => current_time( DATE_W3C ),
 				'postId'      => $post_id,
 				'slug'        => $post->post_name,
+				'path'        => $payload['path'],
 				'paths'       => $payload['paths'],
 				'success'     => $status_code >= 200 && $status_code < 300,
 				'statusCode'  => $status_code,
+				'responseMessage' => $response_message,
+				'responseBody'    => $response_body,
 				'error'       => '',
 			]
 		);
@@ -500,6 +513,7 @@ function tsurilogue_seo_tools_get_revalidate_payload( $post_id, $post ) {
 		'event'      => 'wordpress.post.updated',
 		'postId'     => $post_id,
 		'slug'       => $post->post_name,
+		'path'       => '/ja/media/' . $post->post_name,
 		'updatedAt'  => current_time( DATE_W3C ),
 		'paths'      => $paths,
 		'categories' => tsurilogue_seo_tools_get_headless_post_terms( $post_id, 'category' ),
