@@ -24,7 +24,7 @@ Primary responsibilities:
 Public URL:
 
 ```text
-https://tsurilogue.com/media
+https://www.tsurilogue.com/ja/media
 ```
 
 WordPress origin URL:
@@ -130,17 +130,17 @@ https://tsurilogue.tapiyota.com
 Public:
 
 ```text
-https://tsurilogue.com/media
+https://www.tsurilogue.com/ja/media
 ```
 
 Examples:
 
 ```text
 https://tsurilogue.tapiyota.com/
-=> https://tsurilogue.com/media/
+=> https://www.tsurilogue.com/ja/media/
 
 https://tsurilogue.tapiyota.com/sample-post/
-=> https://tsurilogue.com/media/sample-post/
+=> https://www.tsurilogue.com/ja/media/sample-post/
 ```
 
 Target page types:
@@ -469,7 +469,7 @@ After committing and pushing changes:
 3. Open the GitHub Actions tab.
 4. Confirm the `Deploy TSURILOGUE Media to CORESERVER` workflow succeeds.
 5. Confirm plugins and themes are reflected in the WordPress admin dashboard.
-6. Open `https://tsurilogue.com/media` and confirm the site displays normally.
+6. Open `https://www.tsurilogue.com/ja/media` and confirm the site displays normally.
 7. Open a post page and confirm canonical and CTA output in the HTML source.
 
 If deployment fails:
@@ -490,9 +490,9 @@ Precheck:
 
 - Confirm `TSURILOGUE SEO Tools` is activated in the WordPress admin plugin screen.
 
-1. Open `https://tsurilogue.com/media`.
+1. Open `https://www.tsurilogue.com/ja/media`.
 2. Open a post page.
-3. View page source and confirm the canonical URL starts with `https://tsurilogue.com/media/`.
+3. View page source and confirm the canonical URL starts with `https://www.tsurilogue.com/ja/media/`.
 4. Confirm the article-bottom CTA is displayed on post pages.
 5. Confirm the WordPress admin dashboard works normally.
 6. Confirm SEO SIMPLE PACK OGP settings are not broken.

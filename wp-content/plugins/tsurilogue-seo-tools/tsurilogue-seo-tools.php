@@ -11,12 +11,16 @@ defined( 'ABSPATH' ) || exit;
 
 const TSURILOGUE_SEO_TOOLS_VERSION    = '0.1.0';
 const TSURILOGUE_SEO_TOOLS_ORIGIN_URL = 'https://tsurilogue.tapiyota.com';
-const TSURILOGUE_SEO_TOOLS_PUBLIC_URL = 'https://tsurilogue.com/media';
+const TSURILOGUE_SEO_TOOLS_PUBLIC_URL = 'https://www.tsurilogue.com/ja/media';
 const TSURILOGUE_SEO_TOOLS_CTA_URL    = 'https://tsurilogue.com';
 
 add_filter( 'ssp_output_canonical', 'tsurilogue_seo_tools_convert_public_url', 20 );
 add_filter( 'ssp_output_og_url', 'tsurilogue_seo_tools_convert_public_url', 20 );
 add_filter( 'get_canonical_url', 'tsurilogue_seo_tools_convert_public_url', 20 );
+add_filter( 'post_link', 'tsurilogue_seo_tools_convert_public_url', 20 );
+add_filter( 'page_link', 'tsurilogue_seo_tools_convert_public_url', 20 );
+add_filter( 'post_type_link', 'tsurilogue_seo_tools_convert_public_url', 20 );
+add_filter( 'term_link', 'tsurilogue_seo_tools_convert_public_url', 20 );
 add_filter( 'the_content', 'tsurilogue_seo_tools_append_article_cta', 20 );
 add_action( 'wp_head', 'tsurilogue_seo_tools_maybe_output_structured_data', 20 );
 
