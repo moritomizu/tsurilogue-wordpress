@@ -366,14 +366,17 @@ function tsurilogue_seo_tools_revalidate_nextjs_post( $post_id, $post, $update )
 		'headers'  => [
 			'Content-Type' => 'application/json',
 		],
-		'body'     => wp_json_encode( $payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES ),
 	];
 	$secret  = tsurilogue_seo_tools_get_revalidate_secret();
 
 	if ( $secret ) {
 		$args['headers']['Authorization'] = 'Bearer ' . $secret;
 		$args['headers']['X-TSURILOGUE-Revalidate-Secret'] = $secret;
+		$args['headers']['X-Revalidate-Secret'] = $secret;
+		$payload['secret'] = $secret;
 	}
+
+	$args['body'] = wp_json_encode( $payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
 
 	tsurilogue_seo_tools_update_last_revalidate_result(
 		[

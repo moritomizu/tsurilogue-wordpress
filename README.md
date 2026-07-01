@@ -398,9 +398,12 @@ Headers:
 Content-Type: application/json
 Authorization: Bearer YOUR_SECRET_VALUE
 X-TSURILOGUE-Revalidate-Secret: YOUR_SECRET_VALUE
+X-Revalidate-Secret: YOUR_SECRET_VALUE
 ```
 
-Next.js side should validate the secret, then revalidate all received `paths`.
+The same secret is also included in the JSON body as `secret` for compatibility with common Next.js revalidation handlers.
+
+Next.js side should validate the secret from one agreed source, then revalidate all received `paths`.
 
 Verification:
 
@@ -444,7 +447,7 @@ After saving a published post, `lastResult` should be updated:
 Troubleshooting:
 
 - If `lastResult` is `null`, the WordPress save hook has not fired yet, the post was not published, or the updated file is not deployed.
-- If `success` is `false` and `statusCode` is `401` or `403`, the WordPress secret does not match the Next.js secret.
+- If `success` is `false` and `statusCode` is `401` or `403`, the WordPress secret does not match the Next.js secret, or Next.js is checking a different header/body field than WordPress sends.
 - If `success` is `false` and `statusCode` is `404`, confirm the Next.js revalidation endpoint URL.
 - If `success` is `true` but the page is still stale, check whether the Next.js endpoint revalidates every path in the received `paths` array.
 
