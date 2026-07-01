@@ -101,8 +101,6 @@ jobs:
           set net:reconnect-interval-base 5
           ${SFTP_SETTINGS}
           ${TLS_SETTINGS}
-          mkdir -p "${REMOTE_BASE}/themes"
-          mkdir -p "${REMOTE_BASE}/plugins"
           mirror --reverse --verbose --no-perms \
             --exclude-glob ".DS_Store" \
             --exclude-glob "*/.DS_Store" \
